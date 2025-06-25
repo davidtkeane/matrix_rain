@@ -22,9 +22,12 @@
 ## **🎮 Quick Start**
 
 ```bash
-cd /Volumes/KaliPro/Projects_2025/matrix
+git clone https://github.com/davidtkeane/matrix_rain.git
+cd matrix_rain
 open index.html
 ```
+
+[▶️ Watch Demo Video on MEGA](https://mega.nz/fm/XZNWCbKa)
 
 ## **🎯 Key Features**
 
