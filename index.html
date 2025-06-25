@@ -1,0 +1,2484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRA Matrix Experience v5.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            cursor: none;
+        }
+
+        /* Canvas Styles - Quad layer system */
+        #cosmicCanvas, #matrixCanvas, #effectsCanvas, #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #cosmicCanvas {
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        #cosmicCanvas.active {
+            opacity: 0.3;
+        }
+
+        #matrixCanvas {
+            z-index: 1;
+        }
+
+        #effectsCanvas {
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        #particleCanvas {
+            z-index: 3;
+            pointer-events: none;
+        }
+        /* Enhanced Custom Cursor with size options */
+        .custom-cursor {
+            position: fixed;
+            width: var(--cursor-size, 30px);
+            height: var(--cursor-size, 30px);
+            border: 3px solid var(--cursor-color, #0f0);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            mix-blend-mode: difference;
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+
+        .custom-cursor::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: calc(var(--cursor-size, 30px) * 0.2);
+            height: calc(var(--cursor-size, 30px) * 0.2);
+            background: var(--cursor-color, #0f0);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 20px var(--cursor-color, #0f0);
+        }
+
+        .custom-cursor.clicking {
+            transform: translate(-50%, -50%) scale(0.5);
+            border-color: #fff;
+        }
+
+        /* Enhanced Controls Panel with auto-hide */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 10;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            max-width: calc(100vw - 60px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .controls.hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+
+        .control-button {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--theme-primary, #0f0);
+            color: var(--theme-primary, #0f0);
+            padding: 12px 18px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            backdrop-filter: blur(5px);
+            position: relative;
+            overflow: hidden;
+            min-width: 100px;
+        }
+
+        .control-button.active {
+            background: var(--theme-primary, #0f0);
+            color: #000;
+            box-shadow: 0 0 30px var(--theme-primary, #0f0),
+                        inset 0 0 10px rgba(0, 0, 0, 0.3);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s;
+        }
+
+        .control-button:hover::before {
+            left: 100%;
+        }
+
+        .control-button:hover {
+            background: rgba(0, 50, 0, 0.9);
+            box-shadow: 0 0 20px var(--theme-primary, #0f0);
+            transform: translateY(-2px);
+            text-shadow: 0 0 10px var(--theme-primary, #0f0);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            position: fixed;
+            top: 50%;
+            right: -400px;
+            transform: translateY(-50%);
+            width: 380px;
+            max-height: 80vh;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid var(--theme-primary, #0f0);
+            border-radius: 10px;
+            padding: 30px;
+            z-index: 100;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.3);
+        }
+
+        .settings-panel.active {
+            right: 30px;
+        }
+
+        .settings-panel h2 {
+            color: var(--theme-primary, #0f0);
+            margin-bottom: 25px;
+            text-align: center;
+            text-shadow: 0 0 20px var(--theme-primary, #0f0);
+            font-size: 20px;
+        }
+
+        .setting-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 5px;
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .setting-group h3 {
+            color: var(--theme-primary, #0f0);
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+        }
+
+        .setting-label {
+            color: #fff;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .setting-slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .setting-value {
+            color: var(--theme-primary, #0f0);
+            float: right;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 5px;
+            border-radius: 5px;
+            background: #333;
+            outline: none;
+            margin: 10px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--theme-primary, #0f0);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--theme-primary, #0f0);
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .color-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+            border-color: #fff;
+        }
+
+        .color-option.selected {
+            border-color: #fff;
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        /* Enhanced UI elements with auto-hide */
+        .theme-indicator, .status-bar, .performance-monitor {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .theme-indicator.hidden, .status-bar.hidden, .performance-monitor.hidden {
+            opacity: 0;
+            transform: translateY(-20px);
+            pointer-events: none;
+        }
+
+        /* Theme Indicator */
+        .theme-indicator {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--theme-primary, #0f0);
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.3);
+            text-align: center;
+            min-width: 180px;
+        }
+
+        #themeDisplay {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px currentColor;
+            font-family: 'Courier New', monospace;
+            color: var(--theme-primary, #0f0);
+        }
+
+        .theme-preview {
+            height: 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: linear-gradient(45deg, var(--theme-primary, #0f0), var(--theme-secondary, #080));
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Enhanced Status Bar */
+        .status-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            color: var(--theme-primary, #0f0);
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            text-align: right;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 20px;
+            border: 2px solid rgba(0, 255, 0, 0.3);
+            border-radius: 5px;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+            min-width: 250px;
+        }
+
+        .status-bar div {
+            margin: 3px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-bar div span {
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* Performance Monitor */
+        .performance-monitor {
+            position: fixed;
+            top: 30px;
+            left: 30px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--theme-primary, #0f0);
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            color: var(--theme-primary, #0f0);
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+
+        .performance-monitor.active {
+            display: block;
+        }
+
+        /* Help panel */
+        .help-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid var(--theme-primary, #0f0);
+            padding: 30px;
+            border-radius: 10px;
+            z-index: 100;
+            display: none;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+        }
+
+        .help-panel.active {
+            display: block;
+        }
+
+        .help-panel h2 {
+            color: var(--theme-primary, #0f0);
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 0 0 20px var(--theme-primary, #0f0);
+        }
+
+        .help-panel .shortcuts {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px;
+            color: var(--theme-primary, #0f0);
+        }
+
+        .help-panel .key {
+            background: #111;
+            padding: 5px 10px;
+            border: 1px solid var(--theme-primary, #0f0);
+            border-radius: 3px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .help-panel .description {
+            color: #fff;
+            padding-left: 10px;
+        }
+
+        .help-panel .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: 1px solid var(--theme-primary, #0f0);
+            color: var(--theme-primary, #0f0);
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .help-panel .close:hover {
+            background: var(--theme-primary, #0f0);
+            color: #000;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--theme-primary, #0f0);
+            padding: 20px 40px;
+            border-radius: 5px;
+            color: var(--theme-primary, #0f0);
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            text-shadow: 0 0 10px currentColor;
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+        }
+
+        .notification.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>    <canvas id="cosmicCanvas"></canvas>
+    <canvas id="matrixCanvas"></canvas>
+    <canvas id="effectsCanvas"></canvas>
+    <canvas id="particleCanvas"></canvas>
+    
+    <div class="custom-cursor"></div>
+    
+    <div class="controls" id="controls">
+        <button class="control-button" onclick="matrixEngine.switchColorTheme()">Switch Theme</button>
+        <button class="control-button" id="lightningBtn" onclick="matrixEngine.toggleLightning()">Lightning</button>
+        <button class="control-button" id="waveBtn" onclick="matrixEngine.toggleWave()">Wave</button>
+        <button class="control-button" id="glitchBtn" onclick="matrixEngine.toggleGlitch()">Glitch</button>
+        <button class="control-button" id="explosionBtn" onclick="matrixEngine.toggleExplosion()">Explosion</button>
+        <button class="control-button" id="particlesBtn" onclick="matrixEngine.toggleParticles()">Particles</button>
+        <button class="control-button" id="cosmicBtn" onclick="matrixEngine.toggleCosmic()">Cosmic</button>
+        <button class="control-button" onclick="matrixEngine.toggleSettings()">Settings</button>
+        <button class="control-button" onclick="matrixEngine.resetMatrix()">Reset</button>
+        <button class="control-button" onclick="matrixEngine.toggleHelp()">Help (H)</button>
+    </div>
+
+    <div class="theme-indicator" id="themeIndicator">
+        <div id="themeDisplay">MATRIX</div>
+        <div class="theme-preview"></div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+        <div>ULTRA MATRIX v5.0</div>
+        <div>STATUS: <span id="systemStatus">INITIALIZING</span></div>
+        <div>EFFECTS: <span id="effectsStatus">READY</span></div>
+        <div>PARTICLES: <span id="particleCount">0</span></div>
+    </div>
+
+    <div class="performance-monitor" id="performanceMonitor">
+        <div>FPS: <span id="fps">60</span></div>
+        <div>CHARS: <span id="activeChars">0</span></div>
+        <div>PARTICLES: <span id="activeParticles">0</span></div>
+        <div>CPU: <span id="cpuUsage">0%</span></div>
+    </div>
+
+    <div class="settings-panel" id="settingsPanel">
+        <h2>MATRIX SETTINGS</h2>
+        
+        <div class="setting-group">
+            <h3>CURSOR</h3>
+            <div class="setting-item">
+                <label class="setting-label">Cursor Size <span class="setting-value" id="cursorSizeValue">30px</span></label>
+                <input type="range" id="cursorSize" min="10" max="60" value="30" step="5" onchange="matrixEngine.updateCursorSize(this.value)">
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <h3>LIGHTNING</h3>
+            <div class="setting-item">
+                <label class="setting-label">Lightning Size <span class="setting-value" id="lightningSizeValue">Medium</span></label>
+                <input type="range" id="lightningSize" min="1" max="3" value="2" step="1" onchange="matrixEngine.updateLightningSize(this.value)">
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">Lightning Color</label>
+                <div class="color-picker">
+                    <div class="color-option selected" style="background: #ffffff" onclick="matrixEngine.setLightningColor('#ffffff')"></div>
+                    <div class="color-option" style="background: #00ff00" onclick="matrixEngine.setLightningColor('#00ff00')"></div>
+                    <div class="color-option" style="background: #0080ff" onclick="matrixEngine.setLightningColor('#0080ff')"></div>
+                    <div class="color-option" style="background: #ff0040" onclick="matrixEngine.setLightningColor('#ff0040')"></div>
+                    <div class="color-option" style="background: #ff00ff" onclick="matrixEngine.setLightningColor('#ff00ff')"></div>
+                    <div class="color-option" style="background: #ffff00" onclick="matrixEngine.setLightningColor('#ffff00')"></div>
+                    <div class="color-option" style="background: #00ffff" onclick="matrixEngine.setLightningColor('#00ffff')"></div>
+                    <div class="color-option" style="background: #ff8800" onclick="matrixEngine.setLightningColor('#ff8800')"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <h3>AUTO EFFECTS</h3>
+            <div class="setting-item">
+                <label class="setting-label">Theme Switch Timer <span class="setting-value" id="themeSwitchValue">OFF</span></label>
+                <input type="range" id="themeSwitch" min="0" max="60" value="0" step="5" onchange="matrixEngine.updateThemeSwitch(this.value)">
+                <small style="color: #888;">0 = OFF, 5-60 seconds</small>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">Random Effects Timer <span class="setting-value" id="effectsTimerValue">10s</span></label>
+                <input type="range" id="effectsTimer" min="0" max="30" value="10" step="5" onchange="matrixEngine.updateEffectsTimer(this.value)">
+            </div>
+        </div>
+
+        <div class="setting-group">
+            <h3>UI SETTINGS</h3>
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="autoHideUI" checked onchange="matrixEngine.toggleAutoHideUI(this.checked)">
+                    Auto-hide UI after 5 seconds
+                </label>
+            </div>
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="showNotifications" checked onchange="matrixEngine.toggleNotifications(this.checked)">
+                    Show notifications
+                </label>
+            </div>
+        </div>
+
+        <button class="control-button" style="width: 100%; margin-top: 20px;" onclick="matrixEngine.toggleSettings()">CLOSE</button>
+    </div>
+
+    <div class="help-panel" id="helpPanel">
+        <button class="close" onclick="matrixEngine.toggleHelp()">×</button>
+        <h2>ULTRA MATRIX CONTROLS</h2>
+        <div class="shortcuts">
+            <div class="key">CLICK</div>
+            <div class="description">Lightning strike at cursor position</div>
+            
+            <div class="key">SPACE</div>
+            <div class="description">Switch color theme</div>
+            
+            <div class="key">L</div>
+            <div class="description">Toggle lightning effect</div>
+            
+            <div class="key">W</div>
+            <div class="description">Toggle wave effect</div>
+            
+            <div class="key">G</div>
+            <div class="description">Toggle glitch effect</div>
+            
+            <div class="key">E</div>
+            <div class="description">Toggle explosion effect</div>
+            
+            <div class="key">P</div>
+            <div class="description">Toggle particle system</div>
+            
+            <div class="key">C</div>
+            <div class="description">Toggle cosmic background</div>
+            
+            <div class="key">S</div>
+            <div class="description">Open settings panel</div>
+            
+            <div class="key">D</div>
+            <div class="description">Show performance monitor</div>
+            
+            <div class="key">R</div>
+            <div class="description">Reset everything</div>
+            
+            <div class="key">H</div>
+            <div class="description">Show/hide this help</div>
+            
+            <div class="key">1-6</div>
+            <div class="description">Direct theme selection</div>
+            
+            <div class="key">↑↑↓↓←→←→BA</div>
+            <div class="description">ULTIMATE MODE (Konami)</div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script>        // ===== ULTRA MATRIX SYSTEM v5.0 =====
+        'use strict';
+        
+        // Global error handler to prevent freezing
+        window.addEventListener('error', (e) => {
+            console.error('Matrix Error:', e.error);
+            if (window.matrixEngine) {
+                window.matrixEngine.handleError(e.error);
+            }
+        });
+        
+        // Color Themes with CSS variables support
+        const COLOR_THEMES = {
+            matrix: {
+                id: 0,
+                name: "matrix",
+                displayName: "MATRIX",
+                background: "rgba(0, 0, 0, 1)",
+                primary: "#00ff00",
+                secondary: "#008800",
+                highlight: "#ffffff",
+                glow: "rgba(0, 255, 0, 0.8)",
+                lightning: "#ffffff",
+                wave: "rgba(0, 255, 0, 0.3)",
+                particle: "rgba(0, 255, 0, 0.6)"
+            },
+            blue: {
+                id: 1,
+                name: "blue",
+                displayName: "BLUE MATRIX",
+                background: "rgba(0, 0, 20, 1)",
+                primary: "#0080ff",
+                secondary: "#0040aa",
+                highlight: "#80c0ff",
+                glow: "rgba(0, 128, 255, 0.8)",
+                lightning: "#80c0ff",
+                wave: "rgba(0, 128, 255, 0.3)",
+                particle: "rgba(0, 128, 255, 0.6)"
+            },            red: {
+                id: 2,
+                name: "red", 
+                displayName: "RED ALERT",
+                background: "rgba(20, 0, 0, 1)",
+                primary: "#ff0040",
+                secondary: "#aa0020",
+                highlight: "#ff8080",
+                glow: "rgba(255, 0, 64, 0.8)",
+                lightning: "#ff8080",
+                wave: "rgba(255, 0, 64, 0.3)",
+                particle: "rgba(255, 0, 64, 0.6)"
+            },
+            cyberpunk: {
+                id: 3,
+                name: "cyberpunk",
+                displayName: "CYBERPUNK",
+                background: "rgba(10, 10, 35, 1)",
+                primary: "#ff006e",
+                secondary: "#8338ec",
+                highlight: "#06ffa5",
+                glow: "rgba(255, 0, 110, 0.8)",
+                lightning: "#06ffa5",
+                wave: "rgba(131, 56, 236, 0.3)",
+                particle: "rgba(255, 0, 110, 0.6)"
+            },
+            ghost: {
+                id: 4,
+                name: "ghost",
+                displayName: "GHOST PROTOCOL",
+                background: "rgba(15, 15, 15, 1)",
+                primary: "#ffffff",
+                secondary: "#aaaaaa",
+                highlight: "#ffffff",
+                glow: "rgba(255, 255, 255, 0.6)",
+                lightning: "#ffffff",
+                wave: "rgba(255, 255, 255, 0.2)",
+                particle: "rgba(255, 255, 255, 0.5)"
+            },
+            neon: {
+                id: 5,
+                name: "neon",
+                displayName: "NEON DREAMS",
+                background: "rgba(5, 0, 15, 1)",
+                primary: "#39ff14",
+                secondary: "#ff073a",
+                highlight: "#00d4ff",
+                glow: "rgba(57, 255, 20, 0.9)",
+                lightning: "#00d4ff",
+                wave: "rgba(255, 7, 58, 0.4)",
+                particle: "rgba(57, 255, 20, 0.7)"
+            },
+            
+            getAllThemes: function() {
+                return [this.matrix, this.blue, this.red, this.cyberpunk, this.ghost, this.neon];
+            }
+        };
+
+        // Character Sets
+        const MATRIX_CHARACTERS = {
+            ascii: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+            katakana: 'ﾊﾟｰﾃｨｸﾚﾇﾒｼﾄｽﾅﾆｸﾎﾐﾑﾒｷﾗｽﾀﾝﾁﾄﾓﾜｹﾕﾈﾐｳｼﾁﾋｲﾛｽﾔﾈｳｾｺﾝ',
+            katakanaFull: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン',
+            kanji: '日月火水木金土一二三四五六七八九十',
+            binary: '01',
+            hex: '0123456789ABCDEF',
+            symbols: '!@#$%^&*()_+-=[]{}|;:,.<>?',
+            matrixSymbols: '←↑→↓↖↗↘↙⟨⟩⟪⟫⟬⟭⟮⟯⟰⟱⟲⟳⟴⟵⟶⟷⟸⟹⟺⟻⟼⟽⟾⟿',
+            glitch: '▓▒░█▄▀■□▢▣▤▥▦▧▨▩▪▫▬▭▮▯',
+            
+            getAllChars: function() {
+                return this.ascii + this.katakana + this.katakanaFull + this.kanji + 
+                       this.binary + this.hex + this.symbols + this.matrixSymbols + this.glitch;
+            },
+            
+            getRandomChar: function(setName = 'all') {
+                const chars = setName === 'all' ? this.getAllChars() : this[setName] || this.getAllChars();
+                return chars[Math.floor(Math.random() * chars.length)];
+            }
+        };
+
+        // Cosmic Background Radiation System
+        class CosmicBackground {
+            constructor(canvas, ctx) {
+                this.canvas = canvas;
+                this.ctx = ctx;
+                this.stars = [];
+                this.noise = null;
+                this.time = 0;
+                this.enabled = false;
+                this.initialized = false;
+            }
+            
+            init() {
+                if (this.initialized) return;
+                
+                // Generate star field
+                for (let i = 0; i < 200; i++) {
+                    this.stars.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        size: Math.random() * 2,
+                        brightness: Math.random()
+                    });
+                }
+                
+                // Create noise texture
+                this.noiseCanvas = document.createElement('canvas');
+                this.noiseCanvas.width = 256;
+                this.noiseCanvas.height = 256;
+                this.noiseCtx = this.noiseCanvas.getContext('2d');
+                this.generateNoise();
+                
+                this.initialized = true;
+            }
+            
+            generateNoise() {
+                const imageData = this.noiseCtx.createImageData(256, 256);
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                    const value = Math.random() * 255;
+                    imageData.data[i] = value;
+                    imageData.data[i + 1] = value;
+                    imageData.data[i + 2] = value;
+                    imageData.data[i + 3] = 255;
+                }
+                this.noiseCtx.putImageData(imageData, 0, 0);
+            }
+            
+            render() {
+                if (!this.enabled || !this.initialized) return;
+                
+                this.ctx.save();
+                
+                // Clear with deep space color
+                this.ctx.fillStyle = 'rgba(5, 0, 15, 0.1)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Render stars with twinkling
+                this.stars.forEach(star => {
+                    const twinkle = Math.sin(this.time * 0.001 + star.brightness * Math.PI * 2) * 0.5 + 0.5;
+                    this.ctx.globalAlpha = star.brightness * twinkle;
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                });
+                
+                // Render cosmic microwave background radiation
+                this.ctx.globalAlpha = 0.05;
+                this.ctx.globalCompositeOperation = 'screen';
+                
+                // Animated noise pattern
+                const pattern = this.ctx.createPattern(this.noiseCanvas, 'repeat');
+                this.ctx.fillStyle = pattern;
+                this.ctx.save();
+                this.ctx.translate(
+                    Math.sin(this.time * 0.0001) * 50,
+                    Math.cos(this.time * 0.0001) * 50
+                );
+                this.ctx.fillRect(-50, -50, this.canvas.width + 100, this.canvas.height + 100);
+                this.ctx.restore();
+                
+                // Color shift for cosmic effect
+                this.ctx.globalAlpha = 0.02;
+                this.ctx.fillStyle = `hsl(${(this.time * 0.01) % 360}, 50%, 50%)`;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.ctx.restore();
+                this.time++;
+            }
+            
+            toggle() {
+                this.enabled = !this.enabled;
+                if (this.enabled && !this.initialized) {
+                    this.init();
+                }
+                document.getElementById('cosmicCanvas').classList.toggle('active', this.enabled);
+                return this.enabled;
+            }
+        }
+        // Enhanced Particle System
+        class ParticleSystem {
+            constructor(canvas, ctx) {
+                this.canvas = canvas;
+                this.ctx = ctx;
+                this.particles = [];
+                this.explosions = [];
+                this.mouseParticles = [];
+                this.maxParticles = 200;
+                this.mouseTrailLength = 30;
+                this.enabled = false;
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.lightningColor = '#ffffff';
+            }
+            
+            createParticle(x, y, type = 'ambient') {
+                const particle = {
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    size: Math.random() * 3 + 1,
+                    life: 1.0,
+                    decay: 0.01 + Math.random() * 0.01,
+                    type: type,
+                    color: this.currentTheme ? this.currentTheme.particle : '#00ff00',
+                    angle: Math.random() * Math.PI * 2,
+                    angleSpeed: (Math.random() - 0.5) * 0.1
+                };
+                
+                // Special properties for explosion particles
+                if (type === 'explosion') {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 3 + Math.random() * 12;
+                    particle.vx = Math.cos(angle) * speed;
+                    particle.vy = Math.sin(angle) * speed;
+                    particle.size = Math.random() * 8 + 4;
+                    particle.decay = 0.02 + Math.random() * 0.02;
+                    particle.trail = [];
+                    particle.color = this.getExplosionColor();
+                }
+                
+                return particle;
+            }
+            
+            getExplosionColor() {
+                const colors = [
+                    this.currentTheme.primary,
+                    this.currentTheme.secondary,
+                    this.currentTheme.highlight,
+                    this.lightningColor
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            update() {
+                if (!this.enabled) return;
+                
+                // Update particles
+                this.particles = this.particles.filter(particle => {
+                    // Update position
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.life -= particle.decay;
+                    particle.angle += particle.angleSpeed;
+                    
+                    // Physics
+                    if (particle.type === 'ambient') {
+                        particle.vy += 0.02; // Gravity
+                        particle.vx *= 0.99; // Air resistance
+                        
+                        // Mouse attraction
+                        const dx = this.mouseX - particle.x;
+                        const dy = this.mouseY - particle.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < 200 && dist > 0) {
+                            particle.vx += (dx / dist) * 0.1;
+                            particle.vy += (dy / dist) * 0.1;
+                        }
+                    } else if (particle.type === 'explosion') {
+                        // Explosion particles slow down
+                        particle.vx *= 0.95;
+                        particle.vy *= 0.95;
+                        particle.vy += 0.1; // Slight gravity
+                        
+                        // Add to trail
+                        if (particle.trail.length < 10) {
+                            particle.trail.push({ x: particle.x, y: particle.y, life: particle.life });
+                        }
+                    }
+                    
+                    return particle.life > 0;
+                });
+                
+                // Update mouse trail
+                this.mouseParticles = this.mouseParticles.filter(particle => {
+                    particle.life -= particle.decay * 2;
+                    particle.size *= 0.98;
+                    return particle.life > 0;
+                });
+                
+                // Add ambient particles
+                if (this.particles.length < this.maxParticles && Math.random() < 0.1) {
+                    this.particles.push(this.createParticle(
+                        Math.random() * this.canvas.width,
+                        Math.random() * this.canvas.height,
+                        'ambient'
+                    ));
+                }
+                
+                // Update explosions
+                this.explosions = this.explosions.filter(explosion => {
+                    explosion.radius += explosion.speed;
+                    explosion.life -= 0.02;
+                    return explosion.life > 0;
+                });
+            }
+            
+            render() {
+                if (!this.enabled) return;
+                
+                this.ctx.save();
+                
+                // Render explosions shockwaves
+                this.explosions.forEach(explosion => {
+                    this.ctx.globalAlpha = explosion.life * 0.5;
+                    this.ctx.strokeStyle = explosion.color;
+                    this.ctx.lineWidth = 3;
+                    this.ctx.shadowBlur = 20;
+                    this.ctx.shadowColor = explosion.color;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(explosion.x, explosion.y, explosion.radius, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                });
+                
+                // Render particles
+                this.particles.forEach(particle => {
+                    this.ctx.globalAlpha = particle.life;
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowColor = particle.color;
+                    
+                    // Render trail for explosion particles
+                    if (particle.trail && particle.trail.length > 0) {
+                        this.ctx.globalAlpha = particle.life * 0.3;
+                        this.ctx.strokeStyle = particle.color;
+                        this.ctx.lineWidth = particle.size * 0.5;
+                        this.ctx.beginPath();
+                        particle.trail.forEach((point, index) => {
+                            if (index === 0) {
+                                this.ctx.moveTo(point.x, point.y);
+                            } else {
+                                this.ctx.lineTo(point.x, point.y);
+                            }
+                        });
+                        this.ctx.stroke();
+                    }
+                    
+                    // Render particle
+                    this.ctx.globalAlpha = particle.life;
+                    this.ctx.save();
+                    this.ctx.translate(particle.x, particle.y);
+                    this.ctx.rotate(particle.angle);
+                    
+                    if (particle.type === 'explosion') {
+                        // Star shape for explosion particles
+                        this.ctx.beginPath();
+                        for (let i = 0; i < 5; i++) {
+                            const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+                            const x = Math.cos(angle) * particle.size;
+                            const y = Math.sin(angle) * particle.size;
+                            if (i === 0) {
+                                this.ctx.moveTo(x, y);
+                            } else {
+                                this.ctx.lineTo(x, y);
+                            }
+                            const innerAngle = angle + Math.PI / 5;
+                            const innerX = Math.cos(innerAngle) * particle.size * 0.5;
+                            const innerY = Math.sin(innerAngle) * particle.size * 0.5;
+                            this.ctx.lineTo(innerX, innerY);
+                        }
+                        this.ctx.closePath();
+                        this.ctx.fill();
+                    } else {
+                        // Circle for ambient particles
+                        this.ctx.beginPath();
+                        this.ctx.arc(0, 0, particle.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    
+                    this.ctx.restore();
+                });
+                
+                // Render mouse trail
+                this.mouseParticles.forEach((particle, index) => {
+                    this.ctx.globalAlpha = particle.life * 0.6;
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.shadowColor = particle.color;
+                    
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Connect trail points
+                    if (index > 0) {
+                        const prevParticle = this.mouseParticles[index - 1];
+                        this.ctx.globalAlpha = particle.life * 0.3;
+                        this.ctx.strokeStyle = particle.color;
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(prevParticle.x, prevParticle.y);
+                        this.ctx.lineTo(particle.x, particle.y);
+                        this.ctx.stroke();
+                    }
+                });
+                
+                this.ctx.restore();
+            }
+            
+            explode(x, y, count = 100) {
+                // Create explosion shockwave
+                this.explosions.push({
+                    x: x,
+                    y: y,
+                    radius: 0,
+                    speed: 8,
+                    life: 1.0,
+                    color: this.lightningColor
+                });
+                
+                // Create particles
+                for (let i = 0; i < count; i++) {
+                    this.particles.push(this.createParticle(x, y, 'explosion'));
+                }
+            }
+            
+            addMouseParticle(x, y) {
+                if (!this.enabled) return;
+                
+                if (this.mouseParticles.length > this.mouseTrailLength) {
+                    this.mouseParticles.shift();
+                }
+                
+                const particle = this.createParticle(x, y, 'mouse');
+                particle.size = 4;
+                particle.decay = 0.02;
+                this.mouseParticles.push(particle);
+            }
+            
+            setTheme(theme) {
+                this.currentTheme = theme;
+                this.particles.forEach(p => {
+                    if (p.type === 'ambient') {
+                        p.color = theme.particle;
+                    }
+                });
+            }
+            
+            setLightningColor(color) {
+                this.lightningColor = color;
+            }
+            
+            updateMouse(x, y) {
+                this.mouseX = x;
+                this.mouseY = y;
+                this.addMouseParticle(x, y);
+            }
+        }
+        // Enhanced Effects Engine
+        class EffectsEngine {
+            constructor(canvas, ctx) {
+                this.canvas = canvas;
+                this.ctx = ctx;
+                this.lightningBolts = [];
+                this.waves = [];
+                this.currentTheme = COLOR_THEMES.matrix;
+                this.glitchLevel = 0;
+                this.scanlinePosition = 0;
+                this.rgbSplit = 0;
+                this.digitalNoise = 0;
+                this.lightningColor = '#ffffff';
+                this.lightningSize = 2; // 1=small, 2=medium, 3=large
+                
+                // Effect toggles
+                this.lightningEnabled = false;
+                this.waveEnabled = false;
+                this.glitchEnabled = false;
+                this.explosionEnabled = false;
+            }
+            
+            update() {
+                this.updateLightning();
+                this.updateWaves();
+                this.updateGlitch();
+                this.updateScanlines();
+                this.updateRGBSplit();
+            }
+            
+            render() {
+                this.renderLightning();
+                this.renderWaves();
+                this.renderGlitch();
+                this.renderScanlines();
+                this.renderDigitalNoise();
+            }
+            
+            updateLightning() {
+                this.lightningBolts = this.lightningBolts.filter(bolt => {
+                    bolt.age += 16;
+                    
+                    // Fade out branches faster
+                    if (bolt.isBranch) {
+                        bolt.age += 8;
+                    }
+                    
+                    return bolt.age < bolt.lifespan;
+                });
+                
+                // Auto-generate lightning if enabled
+                if (this.lightningEnabled && Math.random() < 0.02) {
+                    this.triggerLightning();
+                }
+            }
+            
+            renderLightning() {
+                this.ctx.save();
+                
+                this.lightningBolts.forEach(bolt => {
+                    const alpha = 1 - (bolt.age / bolt.lifespan);
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.strokeStyle = this.lightningColor;
+                    this.ctx.lineWidth = bolt.thickness * this.getThicknessMultiplier();
+                    this.ctx.lineCap = 'round';
+                    this.ctx.shadowBlur = 30;
+                    this.ctx.shadowColor = this.lightningColor;
+                    
+                    // Main bolt
+                    this.ctx.beginPath();
+                    bolt.segments.forEach((segment, index) => {
+                        if (index === 0) {
+                            this.ctx.moveTo(segment.x, segment.y);
+                        } else {
+                            this.ctx.lineTo(segment.x, segment.y);
+                        }
+                    });
+                    this.ctx.stroke();
+                    
+                    // Glow layers
+                    this.ctx.globalAlpha = alpha * 0.5;
+                    this.ctx.lineWidth = bolt.thickness * this.getThicknessMultiplier() + 20;
+                    this.ctx.stroke();
+                    
+                    this.ctx.globalAlpha = alpha * 0.3;
+                    this.ctx.lineWidth = bolt.thickness * this.getThicknessMultiplier() + 40;
+                    this.ctx.stroke();
+                    
+                    // Bright core
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = bolt.thickness * 0.3 * this.getThicknessMultiplier();
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.shadowColor = '#ffffff';
+                    this.ctx.stroke();
+                });
+                
+                this.ctx.restore();
+            }
+            
+            getThicknessMultiplier() {
+                switch(this.lightningSize) {
+                    case 1: return 0.5;  // Small
+                    case 2: return 1.0;  // Medium
+                    case 3: return 2.0;  // Large
+                    default: return 1.0;
+                }
+            }
+            
+            triggerLightning(targetX = null, targetY = null) {
+                let startX, startY, endX, endY;
+                
+                if (targetX !== null && targetY !== null) {
+                    // Lightning at exact cursor position
+                    startX = targetX + (Math.random() - 0.5) * 100;
+                    startY = 0;
+                    endX = targetX;
+                    endY = targetY;
+                } else {
+                    // Random lightning
+                    startX = Math.random() * this.canvas.width;
+                    startY = 0;
+                    endX = Math.random() * this.canvas.width;
+                    endY = this.canvas.height;
+                }
+                
+                const bolt = {
+                    segments: this.generateLightningPath(startX, startY, endX, endY),
+                    intensity: 1.0,
+                    age: 0,
+                    lifespan: 300 + Math.random() * 400,
+                    thickness: 4 + Math.random() * 4,
+                    isBranch: false
+                };
+                
+                this.lightningBolts.push(bolt);
+                
+                // Generate branches
+                const numBranches = 2 + Math.floor(Math.random() * 3);
+                for (let i = 0; i < numBranches; i++) {
+                    const branchPoint = Math.floor(Math.random() * (bolt.segments.length - 5)) + 2;
+                    const branchStart = bolt.segments[branchPoint];
+                    const branchAngle = (Math.random() - 0.5) * Math.PI;
+                    const branchLength = 100 + Math.random() * 200;
+                    const branchEnd = {
+                        x: branchStart.x + Math.cos(branchAngle) * branchLength,
+                        y: branchStart.y + Math.abs(Math.sin(branchAngle)) * branchLength
+                    };
+                    
+                    const branch = {
+                        segments: this.generateLightningPath(branchStart.x, branchStart.y, branchEnd.x, branchEnd.y),
+                        intensity: 0.7,
+                        age: 0,
+                        lifespan: 200,
+                        thickness: 2 + Math.random() * 2,
+                        isBranch: true
+                    };
+                    
+                    this.lightningBolts.push(branch);
+                }
+                
+                // Flash effect
+                this.flashScreen();
+                
+                // Trigger glitch on impact
+                if (targetY !== null && targetY > this.canvas.height * 0.7) {
+                    this.triggerGlitch(0.3);
+                }
+            }
+            
+            generateLightningPath(startX, startY, endX, endY) {
+                const segments = [];
+                const steps = Math.floor(Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2) / 15);
+                
+                let prevX = startX;
+                let prevY = startY;
+                
+                for (let i = 0; i <= steps; i++) {
+                    const progress = i / steps;
+                    
+                    // Main path with deviation
+                    let x = startX + (endX - startX) * progress;
+                    let y = startY + (endY - startY) * progress;
+                    
+                    // Add jaggedness
+                    if (i > 0 && i < steps) {
+                        const deviation = 60 * (1 - Math.abs(progress - 0.5) * 2);
+                        x += (Math.random() - 0.5) * deviation;
+                        y += (Math.random() - 0.5) * deviation * 0.5;
+                    }
+                    
+                    segments.push({ x, y });
+                    prevX = x;
+                    prevY = y;
+                }
+                
+                return segments;
+            }
+            
+            flashScreen() {
+                const overlay = document.createElement('div');
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100vw';
+                overlay.style.height = '100vh';
+                overlay.style.background = this.lightningColor;
+                overlay.style.opacity = '0.3';
+                overlay.style.pointerEvents = 'none';
+                overlay.style.zIndex = '9998';
+                overlay.style.mixBlendMode = 'screen';
+                document.body.appendChild(overlay);
+                
+                setTimeout(() => {
+                    overlay.style.transition = 'opacity 0.2s';
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 200);
+                }, 50);
+            }
+            
+            updateWaves() {
+                this.waves = this.waves.filter(wave => {
+                    wave.age += 16;
+                    wave.radius += wave.speed;
+                    return wave.age < wave.lifespan && wave.radius < wave.maxRadius;
+                });
+                
+                // Auto-generate waves if enabled
+                if (this.waveEnabled && Math.random() < 0.01) {
+                    this.triggerWave();
+                }
+            }
+            
+            renderWaves() {
+                this.ctx.save();
+                
+                this.waves.forEach(wave => {
+                    const alpha = (1 - (wave.age / wave.lifespan)) * wave.intensity;
+                    this.ctx.globalAlpha = alpha;
+                    this.ctx.strokeStyle = wave.color;
+                    this.ctx.lineWidth = 3;
+                    this.ctx.shadowBlur = 20;
+                    this.ctx.shadowColor = wave.color;
+                    
+                    // Multiple concentric rings
+                    for (let i = 0; i < 4; i++) {
+                        const ringRadius = wave.radius - (i * 30);
+                        if (ringRadius > 0) {
+                            this.ctx.globalAlpha = alpha * (1 - i * 0.25);
+                            this.ctx.beginPath();
+                            this.ctx.arc(wave.x, wave.y, ringRadius, 0, Math.PI * 2);
+                            this.ctx.stroke();
+                        }
+                    }
+                });
+                
+                this.ctx.restore();
+            }
+            
+            triggerWave(x = null, y = null) {
+                const centerX = x || this.canvas.width / 2;
+                const centerY = y || this.canvas.height / 2;
+                this.createWave(centerX, centerY, 0.8);
+            }
+            
+            createWave(centerX, centerY, intensity = 1) {
+                const wave = {
+                    x: centerX,
+                    y: centerY,
+                    radius: 10,
+                    speed: 6 + intensity * 4,
+                    maxRadius: Math.max(this.canvas.width, this.canvas.height) * 1.5,
+                    intensity: intensity,
+                    age: 0,
+                    lifespan: 2000,
+                    color: this.currentTheme.wave
+                };
+                
+                this.waves.push(wave);
+            }
+            
+            triggerGlitch(intensity = 0.8) {
+                this.glitchLevel = Math.max(this.glitchLevel, intensity);
+                this.rgbSplit = intensity;
+                this.digitalNoise = intensity * 0.5;
+            }
+            
+            updateGlitch() {
+                if (this.glitchLevel > 0) {
+                    this.glitchLevel *= 0.92;
+                    if (this.glitchLevel < 0.01) this.glitchLevel = 0;
+                }
+                
+                // Auto glitch if enabled
+                if (this.glitchEnabled && Math.random() < 0.005) {
+                    this.triggerGlitch(0.3 + Math.random() * 0.5);
+                }
+            }
+            updateRGBSplit() {
+                if (this.rgbSplit > 0) {
+                    this.rgbSplit *= 0.95;
+                    if (this.rgbSplit < 0.01) this.rgbSplit = 0;
+                }
+            }
+            
+            renderGlitch() {
+                if (this.glitchLevel <= 0 && !this.glitchEnabled) return;
+                
+                this.ctx.save();
+                
+                // Save current canvas state
+                const imageData = this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height);
+                
+                // RGB channel separation
+                if (this.rgbSplit > 0) {
+                    this.ctx.globalCompositeOperation = 'screen';
+                    this.ctx.globalAlpha = this.rgbSplit * 0.5;
+                    
+                    // Red channel
+                    this.ctx.fillStyle = '#ff0000';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.globalCompositeOperation = 'multiply';
+                    this.ctx.drawImage(this.canvas, -10 * this.rgbSplit, 0);
+                    
+                    // Blue channel
+                    this.ctx.globalCompositeOperation = 'screen';
+                    this.ctx.fillStyle = '#0000ff';
+                    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                    this.ctx.globalCompositeOperation = 'multiply';
+                    this.ctx.drawImage(this.canvas, 10 * this.rgbSplit, 0);
+                }
+                
+                // Digital corruption blocks
+                this.ctx.globalCompositeOperation = 'source-over';
+                for (let i = 0; i < 20; i++) {
+                    if (Math.random() < this.glitchLevel) {
+                        const x = Math.random() * this.canvas.width;
+                        const y = Math.random() * this.canvas.height;
+                        const w = 50 + Math.random() * 200;
+                        const h = 2 + Math.random() * 20;
+                        
+                        // Glitch block with color
+                        const colors = ['#ff0080', '#00ff80', '#80ff00', '#ff8000', '#00ffff', '#ff00ff'];
+                        this.ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                        this.ctx.globalAlpha = this.glitchLevel * 0.3;
+                        this.ctx.fillRect(x, y, w, h);
+                        
+                        // Data corruption
+                        if (Math.random() < 0.5) {
+                            this.ctx.globalAlpha = this.glitchLevel;
+                            const slice = this.ctx.getImageData(x, y, w, h);
+                            const offsetX = (Math.random() - 0.5) * 50 * this.glitchLevel;
+                            this.ctx.putImageData(slice, x + offsetX, y);
+                        }
+                    }
+                }
+                
+                // Screen tearing
+                if (this.glitchLevel > 0.3) {
+                    const tears = Math.floor(this.glitchLevel * 5);
+                    for (let i = 0; i < tears; i++) {
+                        const tearY = Math.random() * this.canvas.height;
+                        const tearHeight = 10 + Math.random() * 50;
+                        const tearOffset = (Math.random() - 0.5) * 100 * this.glitchLevel;
+                        
+                        const tearData = this.ctx.getImageData(0, tearY, this.canvas.width, tearHeight);
+                        this.ctx.putImageData(tearData, tearOffset, tearY);
+                    }
+                }
+                
+                this.ctx.restore();
+            }
+            
+            renderDigitalNoise() {
+                if (this.digitalNoise <= 0) return;
+                
+                this.ctx.save();
+                this.ctx.globalAlpha = this.digitalNoise * 0.1;
+                
+                // Create noise pattern
+                const noiseCanvas = document.createElement('canvas');
+                noiseCanvas.width = 100;
+                noiseCanvas.height = 100;
+                const noiseCtx = noiseCanvas.getContext('2d');
+                
+                const noiseData = noiseCtx.createImageData(100, 100);
+                for (let i = 0; i < noiseData.data.length; i += 4) {
+                    const noise = Math.random() * 255;
+                    noiseData.data[i] = noise;
+                    noiseData.data[i + 1] = noise;
+                    noiseData.data[i + 2] = noise;
+                    noiseData.data[i + 3] = 255;
+                }
+                noiseCtx.putImageData(noiseData, 0, 0);
+                
+                // Apply noise
+                const pattern = this.ctx.createPattern(noiseCanvas, 'repeat');
+                this.ctx.fillStyle = pattern;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.ctx.restore();
+                
+                this.digitalNoise *= 0.9;
+            }
+            
+            updateScanlines() {
+                this.scanlinePosition += 3;
+                if (this.scanlinePosition > this.canvas.height + 50) {
+                    this.scanlinePosition = -50;
+                }
+            }
+            
+            renderScanlines() {
+                this.ctx.save();
+                this.ctx.globalAlpha = 0.1;
+                this.ctx.strokeStyle = this.currentTheme.primary;
+                this.ctx.lineWidth = 2;
+                this.ctx.shadowBlur = 10;
+                this.ctx.shadowColor = this.currentTheme.primary;
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, this.scanlinePosition);
+                this.ctx.lineTo(this.canvas.width, this.scanlinePosition);
+                this.ctx.stroke();
+                
+                // Additional scan lines
+                this.ctx.globalAlpha = 0.05;
+                for (let y = 0; y < this.canvas.height; y += 4) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+                
+                this.ctx.restore();
+            }
+            
+            setTheme(theme) {
+                this.currentTheme = theme;
+            }
+            
+            setLightningColor(color) {
+                this.lightningColor = color;
+            }
+            
+            setLightningSize(size) {
+                this.lightningSize = parseInt(size);
+            }
+        }
+        // Main Matrix Engine
+        class MatrixEngine {
+            constructor() {
+                this.matrixCanvas = document.getElementById('matrixCanvas');
+                this.effectsCanvas = document.getElementById('effectsCanvas');
+                this.particleCanvas = document.getElementById('particleCanvas');
+                this.cosmicCanvas = document.getElementById('cosmicCanvas');
+                
+                this.matrixCtx = this.matrixCanvas.getContext('2d');
+                this.effectsCtx = this.effectsCanvas.getContext('2d');
+                this.particleCtx = this.particleCanvas.getContext('2d');
+                this.cosmicCtx = this.cosmicCanvas.getContext('2d');
+                
+                // Settings
+                this.settings = {
+                    cursorSize: 30,
+                    lightningSize: 2,
+                    lightningColor: '#ffffff',
+                    autoHideUI: true,
+                    showNotifications: true,
+                    themeSwitchTimer: 0,
+                    effectsTimer: 10
+                };
+                
+                // UI Elements
+                this.uiElements = {
+                    controls: document.getElementById('controls'),
+                    themeIndicator: document.getElementById('themeIndicator'),
+                    statusBar: document.getElementById('statusBar'),
+                    performanceMonitor: document.getElementById('performanceMonitor'),
+                    settingsPanel: document.getElementById('settingsPanel'),
+                    helpPanel: document.getElementById('helpPanel'),
+                    notification: document.getElementById('notification')
+                };
+                
+                // Initialize systems
+                this.initSystems();
+            }
+            
+            initSystems() {
+                try {
+                    this.setupCanvas();
+                    this.initializeMatrix();
+                    this.initializeEffects();
+                    this.initializeParticles();
+                    this.initializeCosmic();
+                    this.initializeThemes();
+                    this.initializeControls();
+                    this.initializePerformanceMonitor();
+                    this.initializeAutoHide();
+                    this.initializeTimers();
+                    this.startEngine();
+                    
+                    this.showNotification('ULTRA MATRIX v5.0 INITIALIZED');
+                    console.log('🔥 ULTRA Matrix Engine v5.0 initialized successfully');
+                } catch (error) {
+                    this.handleError(error);
+                }
+            }
+            
+            setupCanvas() {
+                const updateSize = () => {
+                    this.width = window.innerWidth;
+                    this.height = window.innerHeight;
+                    
+                    [this.matrixCanvas, this.effectsCanvas, this.particleCanvas, this.cosmicCanvas].forEach(canvas => {
+                        canvas.width = this.width;
+                        canvas.height = this.height;
+                        canvas.style.width = this.width + 'px';
+                        canvas.style.height = this.height + 'px';
+                    });
+                    
+                    // Reinitialize on resize
+                    if (this.initialized) {
+                        this.initializeMatrix();
+                    }
+                };
+                
+                updateSize();
+                window.addEventListener('resize', updateSize);
+            }
+            
+            initializeMatrix() {
+                this.fontSize = 14;
+                this.columns = Math.floor(this.width / this.fontSize);
+                this.rows = Math.floor(this.height / this.fontSize);
+                
+                this.chars = MATRIX_CHARACTERS.getAllChars();
+                
+                this.drops = [];
+                this.dropSpeeds = [];
+                this.charBrightness = [];
+                this.charTypes = [];
+                
+                for (let i = 0; i < this.columns; i++) {
+                    this.drops[i] = Math.random() * this.rows;
+                    this.dropSpeeds[i] = 0.3 + Math.random() * 0.7;
+                    this.charBrightness[i] = [];
+                    this.charTypes[i] = [];
+                    
+                    for (let j = 0; j < this.rows; j++) {
+                        this.charBrightness[i][j] = 0;
+                        this.charTypes[i][j] = this.getRandomChar();
+                    }
+                }
+                
+                this.activeCharCount = 0;
+                this.initialized = true;
+            }
+            
+            initializeEffects() {
+                this.effectsEngine = new EffectsEngine(this.effectsCanvas, this.effectsCtx);
+                this.effectsEngine.setLightningColor(this.settings.lightningColor);
+                this.effectsEngine.setLightningSize(this.settings.lightningSize);
+            }
+            
+            initializeParticles() {
+                this.particleSystem = new ParticleSystem(this.particleCanvas, this.particleCtx);
+                this.particleSystem.setLightningColor(this.settings.lightningColor);
+                this.particlesEnabled = false;
+            }
+            
+            initializeCosmic() {
+                this.cosmicBackground = new CosmicBackground(this.cosmicCanvas, this.cosmicCtx);
+            }
+            
+            initializeThemes() {
+                this.currentThemeIndex = 0;
+                this.themes = COLOR_THEMES.getAllThemes();
+                this.currentTheme = this.themes[0];
+                this.effectsEngine.setTheme(this.currentTheme);
+                this.particleSystem.setTheme(this.currentTheme);
+                this.updateThemeDisplay();
+                this.updateCSSVariables();
+            }
+            
+            initializeControls() {
+                // Custom cursor
+                this.cursor = document.querySelector('.custom-cursor');
+                this.mouseX = 0;
+                this.mouseY = 0;
+                
+                // Mouse movement
+                document.addEventListener('mousemove', (e) => {
+                    this.mouseX = e.clientX;
+                    this.mouseY = e.clientY;
+                    
+                    if (this.cursor) {
+                        this.cursor.style.left = e.clientX + 'px';
+                        this.cursor.style.top = e.clientY + 'px';
+                    }
+                    
+                    if (this.particlesEnabled) {
+                        this.particleSystem.updateMouse(e.clientX, e.clientY);
+                    }
+                    
+                    // Reset UI hide timer on mouse movement
+                    this.resetUIHideTimer();
+                });
+                
+                // Click for lightning at exact cursor position
+                document.addEventListener('click', (e) => {
+                    if (e.target.tagName !== 'BUTTON' && 
+                        !e.target.closest('.settings-panel') && 
+                        !e.target.closest('.help-panel')) {
+                        
+                        // Lightning strikes at exact cursor position
+                        this.effectsEngine.triggerLightning(e.clientX, e.clientY);
+                        this.effectsEngine.createWave(e.clientX, e.clientY, 0.6);
+                        
+                        if (this.particlesEnabled) {
+                            this.particleSystem.explode(e.clientX, e.clientY, 50);
+                        }
+                        
+                        // Visual feedback
+                        if (this.cursor) {
+                            this.cursor.classList.add('clicking');
+                            setTimeout(() => this.cursor.classList.remove('clicking'), 200);
+                        }
+                    }
+                });
+                
+                // Keyboard controls
+                this.initializeKeyboardControls();
+                
+                // Konami code
+                this.konamiCode = [];
+                this.konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 
+                                       'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 
+                                       'b', 'a'];
+            }
+            
+            initializeKeyboardControls() {
+                document.addEventListener('keydown', (e) => {
+                    // Konami code check
+                    this.konamiCode.push(e.key);
+                    if (this.konamiCode.length > 10) this.konamiCode.shift();
+                    
+                    if (this.konamiCode.join(',') === this.konamiSequence.join(',')) {
+                        this.activateUltimateMode();
+                        this.konamiCode = [];
+                        return;
+                    }
+                    
+                    switch(e.key.toLowerCase()) {
+                        case ' ':
+                            e.preventDefault();
+                            this.switchColorTheme();
+                            break;
+                        case 'l':
+                            this.toggleLightning();
+                            break;
+                        case 'w':
+                            this.toggleWave();
+                            break;
+                        case 'g':
+                            this.toggleGlitch();
+                            break;
+                        case 'e':
+                            this.toggleExplosion();
+                            break;
+                        case 'p':
+                            this.toggleParticles();
+                            break;
+                        case 'c':
+                            this.toggleCosmic();
+                            break;
+                        case 's':
+                            this.toggleSettings();
+                            break;
+                        case 'r':
+                            this.resetMatrix();
+                            break;
+                        case 'd':
+                            this.togglePerformanceMonitor();
+                            break;
+                        case 'h':
+                            this.toggleHelp();
+                            break;
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                            const themeIndex = parseInt(e.key) - 1;
+                            if (themeIndex < this.themes.length) {
+                                this.setTheme(themeIndex);
+                            }
+                            break;
+                    }
+                });
+            }
+            
+            initializePerformanceMonitor() {
+                this.performanceMonitor = document.getElementById('performanceMonitor');
+                this.fpsElement = document.getElementById('fps');
+                this.lastFrameTime = Date.now();
+                this.frameCount = 0;
+                this.fps = 60;
+            }
+            
+            initializeAutoHide() {
+                this.uiHideTimer = null;
+                this.uiVisible = true;
+                this.resetUIHideTimer();
+            }
+            
+            initializeTimers() {
+                // Theme switch timer
+                this.themeSwitchInterval = null;
+                if (this.settings.themeSwitchTimer > 0) {
+                    this.startThemeSwitchTimer();
+                }
+                
+                // Effects timer
+                this.effectsInterval = null;
+                if (this.settings.effectsTimer > 0) {
+                    this.startEffectsTimer();
+                }
+            }
+            resetUIHideTimer() {
+                if (!this.settings.autoHideUI) return;
+                
+                // Show UI
+                if (!this.uiVisible) {
+                    this.showUI();
+                }
+                
+                // Clear existing timer
+                if (this.uiHideTimer) {
+                    clearTimeout(this.uiHideTimer);
+                }
+                
+                // Set new timer
+                this.uiHideTimer = setTimeout(() => {
+                    this.hideUI();
+                }, 5000);
+            }
+            
+            showUI() {
+                this.uiVisible = true;
+                Object.values(this.uiElements).forEach(element => {
+                    if (element && element.classList) {
+                        element.classList.remove('hidden');
+                    }
+                });
+            }
+            
+            hideUI() {
+                this.uiVisible = false;
+                const elementsToHide = ['controls', 'themeIndicator', 'statusBar'];
+                elementsToHide.forEach(id => {
+                    if (this.uiElements[id]) {
+                        this.uiElements[id].classList.add('hidden');
+                    }
+                });
+            }
+            
+            getRandomChar() {
+                const rand = Math.random();
+                if (rand < 0.4) return MATRIX_CHARACTERS.getRandomChar('katakana');
+                if (rand < 0.7) return MATRIX_CHARACTERS.getRandomChar('ascii');
+                if (rand < 0.85) return MATRIX_CHARACTERS.getRandomChar('binary');
+                if (rand < 0.95) return MATRIX_CHARACTERS.getRandomChar('matrixSymbols');
+                return MATRIX_CHARACTERS.getRandomChar('glitch');
+            }
+            
+            drawMatrix() {
+                // Clear with fade
+                this.matrixCtx.fillStyle = this.currentTheme.background;
+                this.matrixCtx.globalAlpha = 0.05;
+                this.matrixCtx.fillRect(0, 0, this.width, this.height);
+                this.matrixCtx.globalAlpha = 1.0;
+                
+                this.matrixCtx.font = `${this.fontSize}px monospace`;
+                this.activeCharCount = 0;
+                
+                for (let i = 0; i < this.columns; i++) {
+                    for (let j = 0; j < this.rows; j++) {
+                        if (this.charBrightness[i][j] > 0.01) {
+                            this.activeCharCount++;
+                            
+                            let char = this.charTypes[i][j];
+                            let brightness = this.charBrightness[i][j];
+                            
+                            let color;
+                            if (brightness > 0.8) {
+                                color = this.currentTheme.highlight;
+                            } else if (brightness > 0.5) {
+                                color = this.currentTheme.primary;
+                            } else {
+                                color = this.currentTheme.secondary;
+                            }
+                            
+                            const alpha = Math.min(1.0, brightness);
+                            
+                            // Convert color to rgba
+                            if (color.startsWith('#')) {
+                                const r = parseInt(color.slice(1, 3), 16);
+                                const g = parseInt(color.slice(3, 5), 16);
+                                const b = parseInt(color.slice(5, 7), 16);
+                                color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                            }
+                            
+                            this.matrixCtx.fillStyle = color;
+                            
+                            if (brightness > 0.7) {
+                                this.matrixCtx.shadowColor = this.currentTheme.primary;
+                                this.matrixCtx.shadowBlur = 8;
+                            } else {
+                                this.matrixCtx.shadowBlur = 0;
+                            }
+                            
+                            this.matrixCtx.fillText(char, i * this.fontSize, j * this.fontSize);
+                            
+                            // Decay brightness
+                            this.charBrightness[i][j] *= 0.95;
+                            
+                            // Random character change
+                            if (Math.random() < 0.02) {
+                                this.charTypes[i][j] = this.getRandomChar();
+                            }
+                        }
+                    }
+                    
+                    // Spawn new characters
+                    if (Math.random() < 0.025) {
+                        this.charBrightness[i][0] = 1.0;
+                        this.charTypes[i][0] = this.getRandomChar();
+                    }
+                    
+                    // Update drops
+                    this.drops[i] += this.dropSpeeds[i];
+                    if (this.drops[i] > this.rows) {
+                        this.drops[i] = 0;
+                        this.dropSpeeds[i] = 0.3 + Math.random() * 0.7;
+                    }
+                    
+                    const dropRow = Math.floor(this.drops[i]);
+                    if (dropRow < this.rows) {
+                        this.charBrightness[i][dropRow] = Math.max(this.charBrightness[i][dropRow], 1.0);
+                        this.charTypes[i][dropRow] = this.getRandomChar();
+                    }
+                }
+                
+                this.matrixCtx.shadowBlur = 0;
+            }
+            
+            update() {
+                this.effectsEngine.update();
+                this.particleSystem.update();
+                
+                this.updateStatus();
+                this.updatePerformanceMonitor();
+            }
+            
+            updateStatus() {
+                const statusElement = document.getElementById('systemStatus');
+                const effectsElement = document.getElementById('effectsStatus');
+                const particleElement = document.getElementById('particleCount');
+                
+                if (statusElement) {
+                    statusElement.textContent = 'ACTIVE';
+                }
+                
+                if (effectsElement) {
+                    const effects = [];
+                    if (this.effectsEngine.lightningEnabled) effects.push('LIGHTNING');
+                    if (this.effectsEngine.waveEnabled) effects.push('WAVES');
+                    if (this.effectsEngine.glitchEnabled) effects.push('GLITCH');
+                    if (this.effectsEngine.explosionEnabled) effects.push('EXPLOSION');
+                    
+                    effectsElement.textContent = effects.length > 0 ? effects.join(' + ') : 'READY';
+                }
+                
+                if (particleElement) {
+                    const totalParticles = this.particleSystem.particles.length + 
+                                          this.particleSystem.mouseParticles.length;
+                    particleElement.textContent = totalParticles;
+                }
+            }
+            
+            updatePerformanceMonitor() {
+                this.frameCount++;
+                const now = Date.now();
+                const deltaTime = now - this.lastFrameTime;
+                
+                if (deltaTime >= 1000) {
+                    this.fps = Math.round((this.frameCount * 1000) / deltaTime);
+                    this.frameCount = 0;
+                    this.lastFrameTime = now;
+                    
+                    if (this.fpsElement) {
+                        this.fpsElement.textContent = this.fps;
+                    }
+                    
+                    document.getElementById('activeChars').textContent = this.activeCharCount;
+                    document.getElementById('activeParticles').textContent = 
+                        this.particleSystem.particles.length + this.particleSystem.mouseParticles.length;
+                }
+            }
+            
+            updateCSSVariables() {
+                document.documentElement.style.setProperty('--theme-primary', this.currentTheme.primary);
+                document.documentElement.style.setProperty('--theme-secondary', this.currentTheme.secondary);
+                document.documentElement.style.setProperty('--cursor-size', this.settings.cursorSize + 'px');
+                document.documentElement.style.setProperty('--cursor-color', this.currentTheme.primary);
+            }
+            
+            updateThemeDisplay() {
+                const themeDisplayElement = document.getElementById('themeDisplay');
+                
+                if (themeDisplayElement) {
+                    themeDisplayElement.textContent = this.currentTheme.displayName;
+                }
+                
+                this.updateCSSVariables();
+            }
+            
+            animate() {
+                try {
+                    // Clear canvases
+                    this.effectsCtx.clearRect(0, 0, this.width, this.height);
+                    this.particleCtx.clearRect(0, 0, this.width, this.height);
+                    
+                    // Render cosmic background
+                    this.cosmicBackground.render();
+                    
+                    // Draw everything
+                    this.drawMatrix();
+                    this.effectsEngine.render();
+                    this.particleSystem.render();
+                    this.update();
+                    
+                    requestAnimationFrame(() => this.animate());
+                } catch (error) {
+                    this.handleError(error);
+                }
+            }
+            
+            startEngine() {
+                this.animate();
+                const statusElement = document.getElementById('systemStatus');
+                if (statusElement) {
+                    statusElement.textContent = 'ACTIVE';
+                }
+            }
+            
+            // Toggle Methods
+            toggleLightning() {
+                this.effectsEngine.lightningEnabled = !this.effectsEngine.lightningEnabled;
+                this.updateButtonState('lightningBtn', this.effectsEngine.lightningEnabled);
+                this.showNotification(this.effectsEngine.lightningEnabled ? 'LIGHTNING ON' : 'LIGHTNING OFF');
+            }
+            
+            toggleWave() {
+                this.effectsEngine.waveEnabled = !this.effectsEngine.waveEnabled;
+                this.updateButtonState('waveBtn', this.effectsEngine.waveEnabled);
+                this.showNotification(this.effectsEngine.waveEnabled ? 'WAVES ON' : 'WAVES OFF');
+            }
+            
+            toggleGlitch() {
+                this.effectsEngine.glitchEnabled = !this.effectsEngine.glitchEnabled;
+                this.updateButtonState('glitchBtn', this.effectsEngine.glitchEnabled);
+                this.showNotification(this.effectsEngine.glitchEnabled ? 'GLITCH ON' : 'GLITCH OFF');
+            }
+            
+            toggleExplosion() {
+                this.effectsEngine.explosionEnabled = !this.effectsEngine.explosionEnabled;
+                this.updateButtonState('explosionBtn', this.effectsEngine.explosionEnabled);
+                
+                if (this.effectsEngine.explosionEnabled) {
+                    this.triggerExplosion();
+                }
+                
+                this.showNotification(this.effectsEngine.explosionEnabled ? 'EXPLOSIONS ON' : 'EXPLOSIONS OFF');
+            }
+            
+            toggleParticles() {
+                this.particlesEnabled = !this.particlesEnabled;
+                this.particleSystem.enabled = this.particlesEnabled;
+                this.updateButtonState('particlesBtn', this.particlesEnabled);
+                this.showNotification(this.particlesEnabled ? 'PARTICLES ON' : 'PARTICLES OFF');
+            }
+            
+            toggleCosmic() {
+                const enabled = this.cosmicBackground.toggle();
+                this.updateButtonState('cosmicBtn', enabled);
+                this.showNotification(enabled ? 'COSMIC BACKGROUND ON' : 'COSMIC BACKGROUND OFF');
+            }
+            
+            toggleSettings() {
+                this.uiElements.settingsPanel.classList.toggle('active');
+            }
+            
+            toggleHelp() {
+                this.uiElements.helpPanel.classList.toggle('active');
+            }
+            
+            togglePerformanceMonitor() {
+                this.uiElements.performanceMonitor.classList.toggle('active');
+            }
+            
+            updateButtonState(buttonId, active) {
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    if (active) {
+                        button.classList.add('active');
+                    } else {
+                        button.classList.remove('active');
+                    }
+                }
+            }
+            // Theme Methods
+            switchColorTheme() {
+                this.currentThemeIndex = (this.currentThemeIndex + 1) % this.themes.length;
+                this.currentTheme = this.themes[this.currentThemeIndex];
+                this.effectsEngine.setTheme(this.currentTheme);
+                this.particleSystem.setTheme(this.currentTheme);
+                this.updateThemeDisplay();
+                
+                this.effectsEngine.createWave(this.width / 2, this.height / 2, 0.6);
+                this.showNotification(`THEME: ${this.currentTheme.displayName}`);
+            }
+            
+            setTheme(index) {
+                this.currentThemeIndex = index;
+                this.currentTheme = this.themes[index];
+                this.effectsEngine.setTheme(this.currentTheme);
+                this.particleSystem.setTheme(this.currentTheme);
+                this.updateThemeDisplay();
+                
+                this.effectsEngine.createWave(this.width / 2, this.height / 2, 0.4);
+                this.showNotification(`THEME: ${this.currentTheme.displayName}`);
+            }
+            
+            // Settings Update Methods
+            updateCursorSize(value) {
+                this.settings.cursorSize = parseInt(value);
+                document.documentElement.style.setProperty('--cursor-size', value + 'px');
+                document.getElementById('cursorSizeValue').textContent = value + 'px';
+            }
+            
+            updateLightningSize(value) {
+                this.settings.lightningSize = parseInt(value);
+                this.effectsEngine.setLightningSize(value);
+                const sizes = ['Small', 'Medium', 'Large'];
+                document.getElementById('lightningSizeValue').textContent = sizes[value - 1];
+            }
+            
+            setLightningColor(color) {
+                this.settings.lightningColor = color;
+                this.effectsEngine.setLightningColor(color);
+                this.particleSystem.setLightningColor(color);
+                
+                // Update color picker selection
+                document.querySelectorAll('.color-option').forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.style.background === color) {
+                        option.classList.add('selected');
+                    }
+                });
+                
+                this.showNotification('LIGHTNING COLOR UPDATED');
+            }
+            
+            updateThemeSwitch(value) {
+                this.settings.themeSwitchTimer = parseInt(value);
+                document.getElementById('themeSwitchValue').textContent = value > 0 ? value + 's' : 'OFF';
+                
+                // Restart timer
+                if (this.themeSwitchInterval) {
+                    clearInterval(this.themeSwitchInterval);
+                    this.themeSwitchInterval = null;
+                }
+                
+                if (value > 0) {
+                    this.startThemeSwitchTimer();
+                }
+            }
+            
+            updateEffectsTimer(value) {
+                this.settings.effectsTimer = parseInt(value);
+                document.getElementById('effectsTimerValue').textContent = value > 0 ? value + 's' : 'OFF';
+                
+                // Restart timer
+                if (this.effectsInterval) {
+                    clearInterval(this.effectsInterval);
+                    this.effectsInterval = null;
+                }
+                
+                if (value > 0) {
+                    this.startEffectsTimer();
+                }
+            }
+            
+            toggleAutoHideUI(checked) {
+                this.settings.autoHideUI = checked;
+                if (!checked) {
+                    this.showUI();
+                    if (this.uiHideTimer) {
+                        clearTimeout(this.uiHideTimer);
+                        this.uiHideTimer = null;
+                    }
+                } else {
+                    this.resetUIHideTimer();
+                }
+            }
+            
+            toggleNotifications(checked) {
+                this.settings.showNotifications = checked;
+            }
+            
+            // Timer Methods
+            startThemeSwitchTimer() {
+                this.themeSwitchInterval = setInterval(() => {
+                    this.switchColorTheme();
+                }, this.settings.themeSwitchTimer * 1000);
+            }
+            
+            startEffectsTimer() {
+                this.effectsInterval = setInterval(() => {
+                    this.triggerRandomEffect();
+                }, this.settings.effectsTimer * 1000);
+            }
+            
+            // Effect Triggers
+            triggerExplosion() {
+                const centerX = this.width / 2;
+                const centerY = this.height / 2;
+                
+                // Create multiple waves
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        this.effectsEngine.createWave(centerX, centerY, 1.0 - i * 0.2);
+                    }, i * 100);
+                }
+                
+                // Trigger particle explosion
+                if (this.particlesEnabled) {
+                    this.particleSystem.explode(centerX, centerY, 150);
+                }
+                
+                // Lightning circle
+                const numBolts = 8;
+                for (let i = 0; i < numBolts; i++) {
+                    const angle = (Math.PI * 2 * i) / numBolts;
+                    const targetX = centerX + Math.cos(angle) * 300;
+                    const targetY = centerY + Math.sin(angle) * 300;
+                    
+                    setTimeout(() => {
+                        this.effectsEngine.triggerLightning(targetX, targetY);
+                    }, i * 50);
+                }
+                
+                // Massive glitch
+                this.effectsEngine.triggerGlitch(1.0);
+            }
+            
+            triggerRandomEffect() {
+                const effects = [
+                    () => this.effectsEngine.triggerLightning(),
+                    () => this.effectsEngine.triggerWave(),
+                    () => this.effectsEngine.triggerGlitch(0.5),
+                    () => {
+                        if (this.effectsEngine.explosionEnabled) {
+                            this.triggerExplosion();
+                        }
+                    }
+                ];
+                
+                const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+                randomEffect();
+            }
+            
+            // Ultimate Mode
+            activateUltimateMode() {
+                this.showNotification('🎮 KONAMI CODE ACTIVATED!');
+                
+                // Enable everything
+                this.effectsEngine.lightningEnabled = true;
+                this.effectsEngine.waveEnabled = true;
+                this.effectsEngine.glitchEnabled = true;
+                this.effectsEngine.explosionEnabled = true;
+                this.particlesEnabled = true;
+                this.particleSystem.enabled = true;
+                this.cosmicBackground.enabled = true;
+                
+                // Update all buttons
+                ['lightningBtn', 'waveBtn', 'glitchBtn', 'explosionBtn', 'particlesBtn', 'cosmicBtn'].forEach(id => {
+                    this.updateButtonState(id, true);
+                });
+                
+                // Switch to neon theme
+                this.setTheme(5);
+                
+                // Mega explosion sequence
+                let explosionCount = 0;
+                const explosionInterval = setInterval(() => {
+                    this.triggerExplosion();
+                    explosionCount++;
+                    
+                    if (explosionCount >= 3) {
+                        clearInterval(explosionInterval);
+                        this.showNotification('ULTIMATE MODE COMPLETE!');
+                    }
+                }, 1000);
+            }
+            
+            // Reset
+            resetMatrix() {
+                // Reset character grid
+                for (let i = 0; i < this.columns; i++) {
+                    for (let j = 0; j < this.rows; j++) {
+                        this.charBrightness[i][j] = 0;
+                    }
+                    this.drops[i] = Math.random() * this.rows;
+                    this.dropSpeeds[i] = 0.3 + Math.random() * 0.7;
+                }
+                
+                // Reset theme
+                this.currentThemeIndex = 0;
+                this.currentTheme = this.themes[0];
+                this.effectsEngine.setTheme(this.currentTheme);
+                this.particleSystem.setTheme(this.currentTheme);
+                this.updateThemeDisplay();
+                
+                // Clear all effects
+                this.effectsEngine.lightningBolts = [];
+                this.effectsEngine.waves = [];
+                this.effectsEngine.glitchLevel = 0;
+                this.effectsEngine.rgbSplit = 0;
+                this.effectsEngine.digitalNoise = 0;
+                
+                // Disable all toggles
+                this.effectsEngine.lightningEnabled = false;
+                this.effectsEngine.waveEnabled = false;
+                this.effectsEngine.glitchEnabled = false;
+                this.effectsEngine.explosionEnabled = false;
+                this.particlesEnabled = false;
+                this.particleSystem.enabled = false;
+                this.cosmicBackground.enabled = false;
+                
+                // Update buttons
+                ['lightningBtn', 'waveBtn', 'glitchBtn', 'explosionBtn', 'particlesBtn', 'cosmicBtn'].forEach(id => {
+                    this.updateButtonState(id, false);
+                });
+                
+                // Clear particles
+                this.particleSystem.particles = [];
+                this.particleSystem.mouseParticles = [];
+                this.particleSystem.explosions = [];
+                
+                // Reset settings to defaults
+                this.settings.cursorSize = 30;
+                this.settings.lightningSize = 2;
+                this.settings.lightningColor = '#ffffff';
+                this.updateCursorSize(30);
+                this.updateLightningSize(2);
+                this.setLightningColor('#ffffff');
+                
+                this.showNotification('MATRIX RESET COMPLETE');
+            }
+            
+            // Notification System
+            showNotification(message) {
+                if (!this.settings.showNotifications) return;
+                
+                const notification = this.uiElements.notification;
+                if (!notification) return;
+                
+                notification.textContent = message;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            }
+            
+            // Error Handler
+            handleError(error) {
+                console.error('Matrix Engine Error:', error);
+                this.showNotification('ERROR: ' + error.message);
+                
+                // Attempt recovery
+                try {
+                    if (this.fps < 10) {
+                        // Disable heavy effects if performance is poor
+                        this.particlesEnabled = false;
+                        this.particleSystem.enabled = false;
+                        this.effectsEngine.glitchEnabled = false;
+                        this.showNotification('PERFORMANCE MODE ACTIVATED');
+                    }
+                } catch (e) {
+                    console.error('Recovery failed:', e);
+                }
+            }
+        }
+
+        // Console Commands Helper
+        window.matrixCommands = {
+            help: function() {
+                console.log(`
+🎮 ULTRA MATRIX CONSOLE COMMANDS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+matrixCommands.theme(n)      - Set theme (0-5)
+matrixCommands.lightning()   - Toggle lightning
+matrixCommands.wave()        - Toggle waves
+matrixCommands.glitch()      - Toggle glitch
+matrixCommands.explosion()   - Trigger explosion
+matrixCommands.particles()   - Toggle particles
+matrixCommands.cosmic()      - Toggle cosmic background
+matrixCommands.ultimate()    - ULTIMATE MODE!
+matrixCommands.reset()       - Reset everything
+matrixCommands.fps()         - Show current FPS
+matrixCommands.settings()    - Open settings panel
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                `);
+            },
+            theme: (n) => window.matrixEngine && window.matrixEngine.setTheme(n),
+            lightning: () => window.matrixEngine && window.matrixEngine.toggleLightning(),
+            wave: () => window.matrixEngine && window.matrixEngine.toggleWave(),
+            glitch: () => window.matrixEngine && window.matrixEngine.toggleGlitch(),
+            explosion: () => window.matrixEngine && window.matrixEngine.triggerExplosion(),
+            particles: () => window.matrixEngine && window.matrixEngine.toggleParticles(),
+            cosmic: () => window.matrixEngine && window.matrixEngine.toggleCosmic(),
+            ultimate: () => window.matrixEngine && window.matrixEngine.activateUltimateMode(),
+            reset: () => window.matrixEngine && window.matrixEngine.resetMatrix(),
+            fps: () => window.matrixEngine && console.log('FPS:', window.matrixEngine.fps),
+            settings: () => window.matrixEngine && window.matrixEngine.toggleSettings()
+        };
+
+        // Initialize Matrix Engine
+        window.matrixEngine = null;
+
+        window.addEventListener('load', () => {
+            try {
+                window.matrixEngine = new MatrixEngine();
+                console.log('🚀 ULTRA Matrix System v5.0 loaded successfully!');
+                console.log('💡 Type matrixCommands.help() in console for advanced commands');
+                console.log('📝 Click anywhere for lightning at cursor position!');
+            } catch (error) {
+                console.error('Failed to initialize Matrix Engine:', error);
+                alert('Matrix Engine failed to load. Check console for details.');
+            }
+        });
+
+        // Prevent context menu for better immersion
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Visibility change handler for performance
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && window.matrixEngine) {
+                // Pause heavy effects when tab is hidden
+                window.matrixEngine.particleSystem.enabled = false;
+                window.matrixEngine.effectsEngine.glitchEnabled = false;
+            } else if (window.matrixEngine && window.matrixEngine.particlesEnabled) {
+                // Resume if they were enabled
+                window.matrixEngine.particleSystem.enabled = true;
+            }
+        });
+
+        console.log('🔥 ULTRA MATRIX EXPERIENCE v5.0 READY!');
+    </script>
+</body>
+</html>
