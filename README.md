@@ -6,6 +6,8 @@
 ![Matrix](https://img.shields.io/badge/Matrix-ULTRA-green)
 ![Effects](https://img.shields.io/badge/Effects-MIND_BLOWING-red)
 
+[▶️ Watch Demo Video on MEGA](https://mega.nz/fm/XZNWCbKa)
+
 ## 🚀 **MASSIVE v5.0 UPDATE**
 
 ### **✨ What's New**
@@ -26,8 +28,6 @@ git clone https://github.com/davidtkeane/matrix_rain.git
 cd matrix_rain
 open index.html
 ```
-
-[▶️ Watch Demo Video on MEGA](https://mega.nz/fm/XZNWCbKa)
 
 ## **🎯 Key Features**
 
